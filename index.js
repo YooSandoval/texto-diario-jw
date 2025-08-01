@@ -4,9 +4,8 @@ const axios = require("axios");
 const app = express();
 
 app.get("/", async (req, res) => {
-  // Usamos fecha con -1 día para evitar que salga el texto de mañana
   const now = new Date();
-  now.setDate(now.getDate() - 1); // ← Resta 1 día
+  now.setDate(now.getDate() - 1); // Restar un día por el desfase UTC
 
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -29,22 +28,21 @@ app.get("/", async (req, res) => {
     });
 
     const item = data?.items?.[0];
-
     if (!item) throw new Error("No se encontró contenido del día");
 
-    // Extraer versículo si existe
-    const escritura = item.title?.includes("w") ? "Versículo no disponible" : item.title;
+    // Versículo: preferir 'contentTitle', y si no, usar 'title'
+    let escritura = item.contentTitle?.trim() || item.title?.trim() || "Versículo no disponible";
 
-    // Extraer el segundo párrafo de contenido
-    const paragraphs = item.content.split(/<p.*?>/g).filter(p => p.includes('</p>'));
-    const rawText = paragraphs[1] || "";
-    const cleanText = rawText.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+    // Extraer todos los párrafos del contenido
+    const allParagraphs = item.content.match(/<p.*?>(.*?)<\/p>/g) || [];
+    const fullText = allParagraphs.map(p => p.replace(/<[^>]*>/g, "").trim()).join(" ");
 
     res.json({
       fecha: fechaStr,
       escritura,
-      texto: cleanText
+      texto: fullText
     });
+
   } catch (e) {
     console.error(e.message);
     res.json({
