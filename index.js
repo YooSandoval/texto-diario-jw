@@ -5,7 +5,7 @@ const app = express();
 
 app.get("/", async (req, res) => {
   const now = new Date();
-  now.setDate(now.getDate() - 1); // Restar un día por el desfase UTC
+  now.setDate(now.getDate() - 1); // Ajuste por desfase UTC
 
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
@@ -30,17 +30,18 @@ app.get("/", async (req, res) => {
     const item = data?.items?.[0];
     if (!item) throw new Error("No se encontró contenido del día");
 
-    // Versículo: preferir 'contentTitle', y si no, usar 'title'
     let escritura = item.contentTitle?.trim() || item.title?.trim() || "Versículo no disponible";
 
-    // Extraer todos los párrafos del contenido
-    const allParagraphs = item.content.match(/<p.*?>(.*?)<\/p>/g) || [];
-    const fullText = allParagraphs.map(p => p.replace(/<[^>]*>/g, "").trim()).join(" ");
+    // Eliminar todas las etiquetas HTML del contenido
+    const rawContent = item.content
+      .replace(/<[^>]*>/g, '') // quitar todo lo que esté entre < >
+      .replace(/\s+/g, ' ')    // eliminar múltiples espacios
+      .trim();
 
     res.json({
       fecha: fechaStr,
       escritura,
-      texto: fullText
+      texto: rawContent
     });
 
   } catch (e) {
